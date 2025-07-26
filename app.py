@@ -6,8 +6,9 @@ import pandas as pd
 import re
 import altair as alt
 
-# Define scoring weights
+# Define scoring weights (adjusted for experience)
 WEIGHTS = {
+    "experience": 2,
     "adtech": 2,
     "java": 2,
     "rtb": 1,
@@ -44,16 +45,32 @@ def extract_text_from_pdf(pdf_file):
                 text += page_text + "\n"
     return text.lower()
 
+# Estimate years of experience
+def extract_years_of_experience(text):
+    matches = re.findall(r'(\d{1,2})\+?\s+years? of experience', text)
+    if matches:
+        years = max(int(m) for m in matches)
+        return years
+    return 0
+
 # Scoring function
 def score_cv(text):
     results = {}
     missing = []
+
+    # Experience check
+    years_exp = extract_years_of_experience(text)
+    results["experience"] = WEIGHTS["experience"] if years_exp >= 7 else 0
+    if years_exp < 7:
+        missing.append("experience")
+
     for key, keywords in KEYWORDS.items():
         found = any(k in text for k in keywords)
         score = WEIGHTS[key] if found else 0
         results[key] = score if key != "bonus" else (0.5 if found else 0)
         if not found and key != "bonus":
             missing.append(key)
+
     total_score = round(sum(results.values()), 2)
 
     # Tagging logic
@@ -64,7 +81,7 @@ def score_cv(text):
     else:
         tag = "❌ Reject"
 
-    return total_score, results, missing, tag
+    return total_score, results, missing, tag, years_exp
 
 # Streamlit App
 st.title("🧠 CV Screening AI Agent")
@@ -76,11 +93,12 @@ if uploaded_files:
     data = []
     for file in uploaded_files:
         text = extract_text_from_pdf(file)
-        score, breakdown, missing, tag = score_cv(text)
+        score, breakdown, missing, tag, years_exp = score_cv(text)
         data.append({
             "Candidate": file.name,
             "Score (out of 10)": score,
             "Tag": tag,
+            "Years of Experience": years_exp,
             "Missing Must-Haves": ", ".join(missing) if missing else "None",
             **breakdown
         })

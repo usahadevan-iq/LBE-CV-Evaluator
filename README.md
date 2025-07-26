@@ -7,7 +7,8 @@ This Streamlit app helps you score and screen candidate CVs (PDFs) for a Lead Ba
 
 - Upload one or more PDF CVs
 - Automatically extracts and scores based on:
-  - AdTech experience
+  - 7+ years of overall experience
+  - AdTech domain experience
   - Java backend skills
   - RTB/OpenRTB knowledge
   - Leadership
